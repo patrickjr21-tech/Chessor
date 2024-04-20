@@ -6,6 +6,7 @@ import { ChessBoard, isPromoting } from "../components/ChessBoard"
 import { useSocket } from "../hooks/useSocket";
 import { Chess, Square } from 'chess.js'
 import { useNavigate, useParams } from "react-router-dom";
+import ReactConfetti from 'react-confetti';
 import MovesTable from "../components/MovesTable";
 import { useUser } from "@repo/store/useUser";
 
@@ -22,6 +23,7 @@ export interface IMove {
 }
 
 interface Metadata {
+
     blackPlayer: { id: string, name: string };
     whitePlayer: {id: string, name: string };
 }
@@ -38,21 +40,15 @@ export const Game = () => {
     const [started, setStarted] = useState(false)
     const [gameMetadata, setGameMetadata] = useState<Metadata | null>(null)
     const [result, setResult] = useState<"WHITE_WINS" | "BLACK_WINS" | "DRAW" | typeof OPPONENT_DISCONNECTED | null>(null);
-    const [moves, setMoves] = useState<IMove[]>([]);
+    const [showConfetti, setShowConfetti] = useState(false);
+     const [moves, setMoves] = useState<IMove[]>([]);
 
-    useEffect(()=>{
-        window.addEventListener('beforeunload', function (e) {
-            e.preventDefault();
-          });  
-    },[]);
-
-    useEffect(() => {
-        if (!socket) {
-            return;
-        }
-        socket.onmessage = (event) => {
-            const message = JSON.parse(event.data);
-
+  useEffect(() => {
+    if (!socket) {
+      return;
+    }
+    socket.onmessage = (event) => {
+      const message = JSON.parse(event.data);
             switch (message.type) {
                 case INIT_GAME:
                     setBoard(chess.board());
@@ -82,6 +78,7 @@ export const Game = () => {
                     break;
                 case GAME_OVER:
                     setResult(message.payload.result);
+                    setShowConfetti(true);
                     break;
 
                 case OPPONENT_DISCONNECTED:
@@ -120,6 +117,8 @@ export const Game = () => {
     if (!socket) return <div>Connecting...</div>
 
     return <div className="">
+         {showConfetti && <ReactConfetti />}
+      <div className="justify-center flex pt-4 text-white">      
         <div className="justify-center flex pt-4 text-white">
             {gameMetadata?.blackPlayer?.name} vs {gameMetadata?.whitePlayer?.name}
         </div>
@@ -147,7 +146,11 @@ export const Game = () => {
                         </div>
                     </div>
                 </div>
+          </div>
             </div>
+          </div>
         </div>
+      </div>
     </div>
-}
+  );
+};

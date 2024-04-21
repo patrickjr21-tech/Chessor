@@ -7,12 +7,10 @@ import { useEffect } from "react";
 import { PRIMARY_BROWN } from "../constants/colors";
 import { AuthProvider } from './context/authcontext'; 
 
-
 export default function RootLayoutNav() {
-    useEffect(() => {
-
-      router.replace("/login");
-    }, []);
+  useEffect(() => {
+    router.replace('/login');
+  }, []);
 
   return (
     <AuthProvider>

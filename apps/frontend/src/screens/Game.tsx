@@ -26,11 +26,17 @@ export interface IMove {
   to: Square;
 }
 
+export interface Player {
+  id: string;
+  name: string;
+  isGuest: boolean;
+}
+
 const moveAudio = new Audio(MoveSound);
 
-interface Metadata {
-  blackPlayer: { id: string; name: string };
-  whitePlayer: { id: string; name: string };
+export interface Metadata {
+  blackPlayer: Player;
+  whitePlayer: Player;
 }
 
 export const Game = () => {
@@ -98,6 +104,9 @@ export const Game = () => {
         case OPPONENT_DISCONNECTED:
           setResult(OPPONENT_DISCONNECTED);
           break;
+        case OPPONENT_DISCONNECTED:
+          setResult(OPPONENT_DISCONNECTED);
+          break;
 
         case GAME_JOINED:
           setGameMetadata({
@@ -135,6 +144,7 @@ export const Game = () => {
   }, [chess, socket]);
 
   if (!socket) return <div>Connecting...</div>;
+  if (!socket) return <div>Connecting...</div>;
 
   return (
     <div className="">
@@ -148,7 +158,7 @@ export const Game = () => {
               <div className="flex justify-center">
                 <div>
                   <div className="mb-4 flex justify-between">
-                    <UserAvatar name={gameMetadata?.blackPlayer?.name ?? ''} />
+                    <UserAvatar gameMetadata={gameMetadata} />
                   </div>
                   <div>
                     <ChessBoard
@@ -166,7 +176,7 @@ export const Game = () => {
                     />
                   </div>
                   <div className="mt-4 flex justify-between">
-                    <UserAvatar name={gameMetadata?.blackPlayer?.name ?? ''} />
+                    <UserAvatar gameMetadata={gameMetadata} self />
                   </div>
                 </div>
               </div>

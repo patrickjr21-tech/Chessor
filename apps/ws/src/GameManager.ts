@@ -51,7 +51,7 @@ export class GameManager {
             console.error('Pending game not found?');
             return;
           }
-          if (user.userId === game.player1UserId) {
+          if (user.userId === game.player1.userId) {
             SocketManager.getInstance().broadcast(
               game.gameId,
               JSON.stringify({
@@ -64,10 +64,10 @@ export class GameManager {
             return;
           }
           SocketManager.getInstance().addUser(user, game.gameId);
-          await game?.updateSecondPlayer(user.userId);
+          await game?.updateSecondPlayer(user);
           this.pendingGameId = null;
         } else {
-          const game = new Game(user.userId, null);
+          const game = new Game(user, null);
           this.games.push(game);
           this.pendingGameId = game.gameId;
           SocketManager.getInstance().addUser(user, game.gameId);
@@ -118,8 +118,14 @@ export class GameManager {
 
         if (!availableGame) {
           const game = new Game(
-            gameFromDb?.whitePlayerId!,
-            gameFromDb?.blackPlayerId!,
+            {
+              name: gameFromDb?.whitePlayer?.name || '',
+              userId: gameFromDb?.whitePlayerId!,
+            },
+            {
+              name: gameFromDb?.blackPlayer?.name || '',
+              userId: gameFromDb?.blackPlayerId!,
+            },
           );
           gameFromDb?.moves.forEach((move) => {
             if (

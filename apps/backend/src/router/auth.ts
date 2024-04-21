@@ -2,15 +2,54 @@ import { Request, Response, Router } from 'express';
 import passport from 'passport';
 import jwt from 'jsonwebtoken';
 import { db } from '../db';
+import { v4 as uuidv4 } from 'uuid';
+import { COOKIE_MAX_AGE } from '..';
 const router = Router();
 
 const CLIENT_URL =
   process.env.AUTH_REDIRECT_URL ?? 'http://localhost:5173/game/random';
 const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key';
 
+interface userJwtClaims {
+  userId: string;
+  name: string;
+  isGuest?: boolean;
+}
+
 interface User {
   id: string;
+  token?: string;
+  name: string;
+  isGuest?: boolean;
 }
+
+// this route is to be hit when the user wants to login as a guest
+router.post('/guest', async (req: Request, res: Response) => {
+  const bodyData = req.body;
+  let guestUUID = 'guest-' + uuidv4();
+
+  const user = await db.user.create({
+    data: {
+      username: guestUUID,
+      email: guestUUID + '@chess100x.com',
+      name: bodyData.name || guestUUID,
+      provider: 'GUEST',
+    },
+  });
+
+  const token = jwt.sign(
+    { userId: user.id, name: user.name, isGuest: true },
+    JWT_SECRET,
+  );
+  let User: User = {
+    id: user.id,
+    name: user.name!,
+    token: token,
+    isGuest: true,
+  };
+  res.cookie('guest', token, { maxAge: COOKIE_MAX_AGE });
+  res.json(User);
+});
 
 router.get('/refresh', async (req: Request, res: Response) => {
   if (req.user) {
@@ -25,12 +64,26 @@ router.get('/refresh', async (req: Request, res: Response) => {
       },
     });
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET);
+    const token = jwt.sign({ userId: user.id, name: userDb?.name }, JWT_SECRET);
     res.json({
       token,
       id: user.id,
       name: userDb?.name,
     });
+  } else if (req.cookies && req.cookies.guest) {
+    const decoded = jwt.verify(req.cookies.guest, JWT_SECRET) as userJwtClaims;
+    const token = jwt.sign(
+      { userId: decoded.userId, name: decoded.name, isGuest: true },
+      JWT_SECRET,
+    );
+    let User: User = {
+      id: decoded.userId,
+      name: decoded.name,
+      token: token,
+      isGuest: true,
+    };
+    res.cookie('guest', token, { maxAge: COOKIE_MAX_AGE });
+    res.json(User);
   } else {
     res.status(401).json({ success: false, message: 'Unauthorized' });
   }
@@ -41,6 +94,7 @@ router.get('/login/failed', (req: Request, res: Response) => {
 });
 
 router.get('/logout', (req: Request, res: Response) => {
+  res.clearCookie('guest');
   req.logout((err) => {
     if (err) {
       console.error('Error logging out:', err);
